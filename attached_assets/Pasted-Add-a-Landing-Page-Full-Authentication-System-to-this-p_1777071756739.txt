@@ -1,0 +1,130 @@
+Add a Landing Page + Full Authentication System to this project.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANDING PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Create a professional landing page (/) that includes:
+
+- App name + logo: "Digital Life Admin"
+- Tagline: "Dump your chaos. Get your life organized. Instantly."
+- Short product intro section (3–4 lines max):
+  "Digital Life Admin is an AI-powered personal assistant that turns
+   your scattered thoughts, tasks, and deadlines into a clean, 
+   prioritized daily plan. Built for people who are tired of juggling
+   10 apps just to remember what to do next."
+- 3 feature highlights (icons + one-liners):
+    🧠 Smart Task Extraction
+    📅 AI Daily Planner
+    🔁 Auto Missed Task Recovery
+- Clear CTA buttons: "Get Started Free" → goes to /register
+- Already have an account? → "Login" → goes to /login
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AUTHENTICATION SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Build complete auth with TWO methods:
+
+1. GOOGLE OAUTH 2.0
+   - Use Passport.js (backend) or NextAuth.js (if Next.js)
+   - "Continue with Google" button on both login + register pages
+   - On success: create user in DB if new, then issue session
+
+2. EMAIL + PASSWORD
+   Register page (/register):
+     - Fields: Full Name, Email, Password, Confirm Password
+     - Validate: email format, password min 8 chars, passwords match
+     - Hash password with bcrypt (salt rounds: 12)
+     - On success: auto-login and redirect to /dashboard
+
+   Login page (/login):
+     - Fields: Email, Password
+     - Show error: "Invalid email or password" (never specify which)
+     - On success: create session and redirect to /dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SESSION MANAGEMENT (VERY IMPORTANT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- On login or register: issue a JWT token with 15-day expiry
+- Store token in an httpOnly cookie (NOT localStorage — security)
+- Cookie settings: httpOnly: true, sameSite: 'lax', secure: true (prod)
+- On every page load: verify token silently in background
+- If token valid → user stays logged in, no login screen
+- If token expired or missing → redirect to /login
+- Do NOT ask user to login again within 15 days of last login
+- On manual logout: delete the cookie + invalidate server-side session
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+USER PANEL — Bottom Left Corner (when logged in)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Add a fixed panel in the bottom-left of every authenticated page:
+
+Show:
+  - User avatar (Google photo if OAuth, initials if email/pass)
+  - Full name + email (truncated if long)
+  - Credits remaining: e.g. "🔋 47 / 100 credits"
+  - Credit bar (visual progress bar, color changes: green → yellow → red)
+  - "Logout" button at the bottom of panel
+
+Panel behavior:
+  - Collapsed by default: shows only avatar + small credit dot indicator
+  - Click avatar → expands to show full info
+  - Logout click → confirmation: "Are you sure?" → then logs out
+  - Smooth slide-up animation on expand
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CREDITS SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Every new user gets 100 free credits on registration
+- Each /api/v1/organize call costs 1 credit
+  (task extraction + planning counts as 1 action)
+- Store credits in the users table in PostgreSQL
+- If credits reach 0: show a modal "You've used all your credits.
+  Upgrade to continue." (no upgrade flow needed in v1 — just the message)
+- Always show live credit count in the bottom-left panel
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATABASE CHANGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Update the users table to include:
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid()
+  full_name        VARCHAR(100) NOT NULL
+  email            VARCHAR(255) UNIQUE NOT NULL
+  password_hash    VARCHAR(255) NULL  ← NULL for Google OAuth users
+  google_id        VARCHAR(255) NULL  ← NULL for email/pass users
+  avatar_url       TEXT NULL
+  credits          INTEGER DEFAULT 100 NOT NULL
+  auth_method      ENUM('google', 'email') NOT NULL
+  created_at       TIMESTAMP DEFAULT NOW()
+  last_login_at    TIMESTAMP DEFAULT NOW()
+
+Create migration file for this schema change.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROTECTED ROUTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- /dashboard, /planner, /history, /insights
+    → require valid session, redirect to /login if not
+- /, /login, /register
+    → always public, redirect to /dashboard if already logged in
+- All /api/v1/* endpoints
+    → require valid JWT in cookie, return 401 if missing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEW API ENDPOINTS NEEDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+POST /api/auth/register          → { name, email, password }
+POST /api/auth/login             → { email, password }
+GET  /api/auth/google            → redirect to Google OAuth
+GET  /api/auth/google/callback   → handle OAuth callback
+POST /api/auth/logout            → clear session cookie
+GET  /api/auth/me                → return current user + credits (verify token)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Never store raw passwords — bcrypt only
+- Never expose JWT secret in frontend code
+- Never return password_hash in any API response
+- All auth errors must return the same vague message (no user enumeration)
+- Write complete code — no placeholders, no TODOs
+- Add the bottom-left user panel to every authenticated layout

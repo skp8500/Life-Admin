@@ -1,0 +1,904 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification for Digital Life Admin
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: tasks
+    description: Task management
+  - name: ai
+    description: AI-powered features
+  - name: plans
+    description: Daily planning
+  - name: insights
+    description: Productivity insights
+  - name: gemini
+    description: Gemini AI chat and image operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List all tasks
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: priority
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/subtasks:
+    get:
+      operationId: listSubtasks
+      tags: [tasks]
+      summary: List subtasks for a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of subtasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+
+  /ai/extract-tasks:
+    post:
+      operationId: extractTasks
+      tags: [ai]
+      summary: Extract structured tasks from raw text using AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtractTasksBody"
+      responses:
+        "200":
+          description: Extracted tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExtractTasksResponse"
+
+  /ai/breakdown/{taskId}:
+    post:
+      operationId: breakdownTask
+      tags: [ai]
+      summary: Break a task into actionable sub-steps using AI
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sub-steps for the task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakdownTaskResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/chat:
+    post:
+      operationId: chatWithAssistant
+      tags: [ai]
+      summary: Chat with the AI assistant about tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatBody"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /ai/reschedule:
+    post:
+      operationId: rescheduleMissedTasks
+      tags: [ai]
+      summary: Detect and reschedule missed/overdue tasks
+      responses:
+        "200":
+          description: Rescheduled tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RescheduleResponse"
+
+  /plans/today:
+    get:
+      operationId: getTodayPlan
+      tags: [plans]
+      summary: Get or generate today's plan
+      responses:
+        "200":
+          description: Today's plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyPlan"
+    post:
+      operationId: generateTodayPlan
+      tags: [plans]
+      summary: Generate a new plan for today using AI
+      responses:
+        "200":
+          description: Generated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyPlan"
+
+  /plans/history:
+    get:
+      operationId: listPlans
+      tags: [plans]
+      summary: List past daily plans
+      responses:
+        "200":
+          description: List of daily plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyPlan"
+
+  /insights:
+    get:
+      operationId: listInsights
+      tags: [insights]
+      summary: List productivity insights
+      responses:
+        "200":
+          description: List of insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Insight"
+
+  /insights/generate:
+    post:
+      operationId: generateInsights
+      tags: [insights]
+      summary: Generate new productivity insights using AI
+      responses:
+        "200":
+          description: Generated insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Insight"
+
+  /insights/stats:
+    get:
+      operationId: getStats
+      tags: [insights]
+      summary: Get productivity stats overview
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductivityStats"
+
+  /gemini/conversations:
+    get:
+      operationId: listGeminiConversations
+      tags: [gemini]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeminiConversation"
+    post:
+      operationId: createGeminiConversation
+      tags: [gemini]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGeminiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiConversation"
+  /gemini/conversations/{id}:
+    get:
+      operationId: getGeminiConversation
+      tags: [gemini]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+    delete:
+      operationId: deleteGeminiConversation
+      tags: [gemini]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+  /gemini/conversations/{id}/messages:
+    get:
+      operationId: listGeminiMessages
+      tags: [gemini]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeminiMessage"
+    post:
+      operationId: sendGeminiMessage
+      tags: [gemini]
+      summary: Send a message and receive an AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendGeminiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+  /gemini/generate-image:
+    post:
+      operationId: generateGeminiImage
+      tags: [gemini]
+      summary: Generate an image from a text prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateGeminiImageBody"
+      responses:
+        "200":
+          description: Generated image data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateGeminiImageResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        priority:
+          type: integer
+        status:
+          type: string
+        deadline:
+          type: ["string", "null"]
+          format: date-time
+        parentId:
+          type: ["integer", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        estimatedMinutes:
+          type: ["integer", "null"]
+        sourceText:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - priority
+        - status
+        - tags
+        - createdAt
+        - updatedAt
+
+    CreateTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        priority:
+          type: integer
+        deadline:
+          type: ["string", "null"]
+          format: date-time
+        parentId:
+          type: ["integer", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        estimatedMinutes:
+          type: ["integer", "null"]
+        sourceText:
+          type: ["string", "null"]
+      required:
+        - title
+
+    UpdateTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        priority:
+          type: integer
+        status:
+          type: string
+        deadline:
+          type: ["string", "null"]
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+        estimatedMinutes:
+          type: ["integer", "null"]
+
+    ExtractTasksBody:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    ExtractedTask:
+      type: object
+      properties:
+        title:
+          type: string
+        deadline:
+          type: ["string", "null"]
+        priority:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        description:
+          type: ["string", "null"]
+      required:
+        - title
+        - priority
+        - tags
+
+    ExtractTasksResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtractedTask"
+        savedTasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+      required:
+        - tasks
+        - savedTasks
+
+    SubStep:
+      type: object
+      properties:
+        title:
+          type: string
+        estimatedMinutes:
+          type: integer
+        description:
+          type: ["string", "null"]
+      required:
+        - title
+        - estimatedMinutes
+
+    BreakdownTaskResponse:
+      type: object
+      properties:
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubStep"
+        savedSubtasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+      required:
+        - steps
+        - savedSubtasks
+
+    ChatBody:
+      type: object
+      properties:
+        message:
+          type: string
+        conversationHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+            required:
+              - role
+              - content
+      required:
+        - message
+
+    ChatResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+        suggestedActions:
+          type: array
+          items:
+            type: string
+      required:
+        - reply
+        - suggestedActions
+
+    RescheduledTask:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        title:
+          type: string
+        oldDeadline:
+          type: ["string", "null"]
+        newDeadline:
+          type: string
+        reason:
+          type: string
+      required:
+        - taskId
+        - title
+        - newDeadline
+        - reason
+
+    RescheduleResponse:
+      type: object
+      properties:
+        rescheduled:
+          type: array
+          items:
+            $ref: "#/components/schemas/RescheduledTask"
+        updatedTasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        message:
+          type: string
+      required:
+        - rescheduled
+        - updatedTasks
+        - message
+
+    PlannedTask:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        title:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        priority:
+          type: integer
+        estimatedMinutes:
+          type: integer
+      required:
+        - taskId
+        - title
+        - startTime
+        - endTime
+        - priority
+        - estimatedMinutes
+
+    DailyPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        plannedTasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedTask"
+        summary:
+          type: ["string", "null"]
+        generatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - date
+        - plannedTasks
+        - generatedAt
+
+    Insight:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        observedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - title
+        - description
+        - data
+        - observedAt
+
+    ProductivityStats:
+      type: object
+      properties:
+        totalTasks:
+          type: integer
+        completedTasks:
+          type: integer
+        pendingTasks:
+          type: integer
+        overdueTasks:
+          type: integer
+        completionRate:
+          type: number
+        tasksByPriority:
+          type: object
+          additionalProperties:
+            type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+      required:
+        - totalTasks
+        - completedTasks
+        - pendingTasks
+        - overdueTasks
+        - completionRate
+        - tasksByPriority
+        - recentActivity
+
+    GeminiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    GeminiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CreateGeminiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    SendGeminiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    GeminiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeminiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    GenerateGeminiImageBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+      required:
+        - prompt
+    GenerateGeminiImageResponse:
+      type: object
+      properties:
+        b64_json:
+          type: string
+        mimeType:
+          type: string
+      required:
+        - b64_json
+        - mimeType
+    GeminiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

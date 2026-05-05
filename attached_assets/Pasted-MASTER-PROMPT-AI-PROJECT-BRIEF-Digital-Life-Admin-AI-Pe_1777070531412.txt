@@ -1,0 +1,141 @@
+MASTER PROMPT — AI PROJECT BRIEF
+Digital Life Admin
+AI Personal Assistant
+A complete AI-powered prompt specification to build your smart task & chaos organizer — production-ready, recruiter-friendly.
+The Master Prompt — copy this
+ROLE: You are an expert full-stack engineer & product architect.
+
+PROJECT: "Digital Life Admin" — an AI-powered personal assistant web app that intelligently organizes a user's tasks, notes, deadlines, and digital chaos into a structured daily life system.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBLEM:
+Users are overwhelmed — emails, tasks, notes, deadlines, and random reminders scattered across apps. No single intelligent system exists to unify and organize digital life automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CORE FEATURES TO IMPLEMENT:
+
+1. Smart Input + NLP Task Extraction
+   - User dumps raw text: "I have an interview next week, need to revise DSA and OS"
+   - LLM extracts: tasks, deadlines, priorities, categories
+   - Output: structured JSON task objects
+
+2. AI Task Breakdown
+   - Big task → sub-steps via LLM
+   - "Build a project" → Plan → Frontend → Backend → Docker → Deploy
+   - Depth configurable by user
+
+3. Smart Daily Planner
+   - Auto-generate today's schedule
+   - Consider: deadlines, workload, past behavior patterns
+   - Output: ordered time-blocked task list
+
+4. Missed Task Recovery
+   - Detect skipped/incomplete tasks
+   - Auto-reschedule with workload rebalancing
+   - Notify user of adjusted plan
+
+5. Conversational Task Interface
+   - Chat UI: "What should I do today?" / "Am I behind schedule?"
+   - LLM reasons over task state to answer
+
+6. Productivity Insights
+   - Pattern detection: "You delay tasks after 8 PM"
+   - Weekly completion trends, focus hour analysis
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TECH STACK:
+   Frontend  → Next.js 14 (App Router) + Tailwind CSS
+   Backend   → FastAPI (Python) — REST + WebSocket
+   AI Layer  → OpenAI GPT-4o / Claude API (task extraction, planning, chat)
+   Database  → PostgreSQL (tasks, users, history)
+   Cache     → Redis (session state, real-time updates)
+   Auth      → NextAuth.js (Google OAuth)
+   Deploy    → Docker Compose (multi-container)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DOCKER ARCHITECTURE (4 containers):
+   frontend   → Next.js app (port 3000)
+   backend    → FastAPI server (port 8000)
+   db         → PostgreSQL 15 (port 5432)
+   ai-worker  → Background task processor (LLM queue)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATABASE SCHEMA (core tables):
+   users(id, name, email, timezone, preferences)
+   tasks(id, user_id, title, description, priority, deadline, status, parent_id, source_text, created_at)
+   daily_plans(id, user_id, date, task_ids[], generated_at)
+   insights(id, user_id, type, data, observed_at)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LLM PROMPT PATTERNS TO USE:
+
+   Task Extraction:
+   "Extract tasks from this user input. Return JSON: [{title, deadline, priority(1-5), tags[]}]"
+
+   Task Breakdown:
+   "Break this task into 4-6 actionable sub-steps. Each step: {title, estimated_minutes}"
+
+   Daily Planner:
+   "Given these tasks and deadlines, create today's schedule. User works best [morning/evening]. Output ordered list."
+
+   Insight Generation:
+   "Analyze task completion history. Identify 2-3 behavioral patterns. Be specific and actionable."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DELIVERABLES:
+   [ ] Fully working MVP with all 6 core features
+   [ ] Docker Compose setup (docker-compose.yml)
+   [ ] README with architecture diagram
+   [ ] .env.example with all required keys
+   [ ] API documentation (FastAPI auto-docs)
+   [ ] Basic unit tests (pytest + Jest)
+
+CONSTRAINTS:
+   - Mobile responsive UI
+   - API response time < 2s for non-LLM calls
+   - LLM calls streamed (no hanging loaders)
+   - All LLM calls abstracted into an AI service layer
+
+START WITH: Project structure, docker-compose.yml, and the Smart Input feature first. Then proceed feature by feature.
+Copy master prompt ↗
+Core features
+🧠
+Smart NLP Input
+Dump text → structured tasks
+🔀
+AI Task Breakdown
+Big goals → actionable steps
+📅
+Daily Planner
+Auto-scheduled by priority
+🔁
+Missed Task Recovery
+Auto-reschedule slippage
+💬
+Chat Interface
+"Am I behind schedule?"
+📊
+Insights Engine
+Behavioral pattern detection
+Tech stack
+Next.js 14
+frontend
+FastAPI
+backend
+GPT-4o
+AI layer
+PostgreSQL
+database
+Redis
+cache
+Docker
+infra
+Docker containers
+⚡
+frontend
+:3000
+🔧
+backend
+:8000
+🗃️
+db
