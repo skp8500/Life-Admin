@@ -9,7 +9,7 @@ import {
   setSessionCookie,
   clearSessionCookie,
 } from "../lib/auth";
-import { requireAuth } from "../middleware/auth";
+import { getPublicUserById, requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -121,6 +121,15 @@ router.post("/auth/logout", async (_req: Request, res: Response): Promise<void> 
 });
 
 router.get("/auth/me", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) {
+    const user = await getPublicUserById(req.userId!);
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    req.user = user;
+  }
+
   res.json({ user: req.user });
 });
 

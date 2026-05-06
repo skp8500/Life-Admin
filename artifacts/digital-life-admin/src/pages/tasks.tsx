@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useListTasks, useUpdateTask, useBreakdownTask, useDeleteTask, useCreateTask, getListTasksQueryKey } from "@workspace/api-client-react";
+import type { Task, UpdateTaskBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,12 +18,74 @@ export default function Tasks() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  const allTasksKey = getListTasksQueryKey();
+  const filteredTasksKey = getListTasksQueryKey(
+    filterStatus !== "all" ? { status: filterStatus } : undefined,
+  );
+
+  const updateTaskList = (
+    items: Task[] | undefined,
+    id: number,
+    data: UpdateTaskBody,
+    statusFilter?: string,
+  ): Task[] | undefined => {
+    if (!items) return items;
+
+    const updated = items.map((task) => {
+      if (task.id !== id) return task;
+      return {
+        ...task,
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    if (statusFilter && data.status && data.status !== statusFilter) {
+      return updated.filter((task) => task.id !== id);
+    }
+
+    return updated;
+  };
   
   const { data: tasks, isLoading } = useListTasks(
     filterStatus !== "all" ? { status: filterStatus } : undefined
   );
 
-  const updateTask = useUpdateTask();
+  const updateTask = useUpdateTask({
+    mutation: {
+      onMutate: async ({ id, data }) => {
+        await Promise.all([
+          queryClient.cancelQueries({ queryKey: allTasksKey }),
+          queryClient.cancelQueries({ queryKey: filteredTasksKey }),
+        ]);
+
+        const previousAll = queryClient.getQueryData<Task[]>(allTasksKey);
+        const previousFiltered = queryClient.getQueryData<Task[]>(filteredTasksKey);
+
+        queryClient.setQueryData<Task[]>(allTasksKey, (items) =>
+          updateTaskList(items, id, data),
+        );
+
+        if (filterStatus !== "all") {
+          queryClient.setQueryData<Task[]>(filteredTasksKey, (items) =>
+            updateTaskList(items, id, data, filterStatus),
+          );
+        }
+
+        return { previousAll, previousFiltered };
+      },
+      onError: (_err, _vars, context) => {
+        if (!context) return;
+        queryClient.setQueryData(allTasksKey, context.previousAll);
+        queryClient.setQueryData(filteredTasksKey, context.previousFiltered);
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: allTasksKey });
+        queryClient.invalidateQueries({ queryKey: filteredTasksKey });
+      },
+    },
+  });
   const deleteTask = useDeleteTask();
   const breakdownTask = useBreakdownTask();
   const createTask = useCreateTask();
@@ -32,14 +95,9 @@ export default function Tasks() {
   const [newTaskDesc, setNewTaskDesc] = useState("");
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
-    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    const newStatus = currentStatus === "completed" ? "pending" : "completed";
     updateTask.mutate(
       { id, data: { status: newStatus } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
-        }
-      }
     );
   };
 
@@ -48,7 +106,8 @@ export default function Tasks() {
       { id },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+          queryClient.invalidateQueries({ queryKey: allTasksKey });
+          queryClient.invalidateQueries({ queryKey: filteredTasksKey });
           toast({ title: "Task deleted" });
         }
       }
@@ -60,7 +119,8 @@ export default function Tasks() {
       { taskId: id },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+          queryClient.invalidateQueries({ queryKey: allTasksKey });
+          queryClient.invalidateQueries({ queryKey: filteredTasksKey });
           toast({ title: "Task broken down into subtasks" });
         }
       }
@@ -76,7 +136,8 @@ export default function Tasks() {
           setIsAddOpen(false);
           setNewTaskTitle("");
           setNewTaskDesc("");
-          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+          queryClient.invalidateQueries({ queryKey: allTasksKey });
+          queryClient.invalidateQueries({ queryKey: filteredTasksKey });
           toast({ title: "Task created" });
         }
       }

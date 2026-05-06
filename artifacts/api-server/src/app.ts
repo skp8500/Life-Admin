@@ -33,7 +33,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Load user from JWT cookie on every request (sets req.user / req.userId if valid)
+// Load user id from JWT cookie on every request (sets req.userId if valid)
 app.use(loadUser);
 
 // CSRF defense-in-depth: verify Origin/Referer for all state-changing requests.
